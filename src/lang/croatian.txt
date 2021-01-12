@@ -2832,7 +2832,7 @@ STR_LAI_OBJECT_DESCRIPTION_COMPANY_OWNED_LAND                   :Zemlja u posjed
 STR_ABOUT_OPENTTD                                               :{WHITE}O OpenTTD-u
 STR_ABOUT_ORIGINAL_COPYRIGHT                                    :{BLACK}Izvorno autorsko pravo {COPYRIGHT} 1995 Chris Sawyer, sva prava pridržana
 STR_ABOUT_VERSION                                               :{BLACK}OpenTTD verzija {REV}
-STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} 2002-2019 OpenTTD tim
+STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} 2002-{STRING} OpenTTD tim
 
 # Framerate display window
 STR_FRAMERATE_CAPTION                                           :{WHITE}Broj sličica
@@ -4581,7 +4581,6 @@ STR_ERROR_CAN_T_CONVERT_ROAD                                    :{WHITE}Ovdje ni
 STR_ERROR_CAN_T_CONVERT_TRAMWAY                                 :{WHITE}Ovdje nije moguće pretvoriti tramvajsku prugu...
 STR_ERROR_NO_SUITABLE_ROAD                                      :{WHITE}Nema prikladne ceste
 STR_ERROR_NO_SUITABLE_TRAMWAY                                   :{WHITE}Nema prikladne tramvajske pruge
-STR_ERROR_INCOMPATIBLE_ROAD                                     :{WHITE}... nekompatibilna cesta
 STR_ERROR_INCOMPATIBLE_TRAMWAY                                  :{WHITE}... nekompatibilna tramvajska pruga
 
 # Waterway construction errors

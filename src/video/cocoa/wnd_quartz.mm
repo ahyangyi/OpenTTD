@@ -17,6 +17,8 @@
 #include "../../stdafx.h"
 #include "../../os/macosx/macos.h"
 
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_4
+
 #define Rect  OTTDRect
 #define Point OTTDPoint
 #import <Cocoa/Cocoa.h>
@@ -192,6 +194,21 @@ void WindowQuartzSubdriver::GetDeviceInfo()
 	/* Initialize the video settings; this data persists between mode switches
 	 * and gather some information that is useful to know about the display */
 
+#	if MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_6
+	/* This way is deprecated as of OSX 10.6 but continues to work.Thus use it
+	 * always, unless allowed to skip compatibility with 10.5 and earlier */
+	CFDictionaryRef cur_mode = CGDisplayCurrentMode(kCGDirectMainDisplay);
+
+	CFNumberGetValue(
+		(const __CFNumber*)CFDictionaryGetValue(cur_mode, kCGDisplayWidth),
+		kCFNumberSInt32Type, &this->device_width
+	);
+
+	CFNumberGetValue(
+		(const __CFNumber*)CFDictionaryGetValue(cur_mode, kCGDisplayHeight),
+		kCFNumberSInt32Type, &this->device_height
+	);
+#	else
 	/* Use the new API when compiling for OSX 10.6 or later */
 	CGDisplayModeRef cur_mode = CGDisplayCopyDisplayMode(kCGDirectMainDisplay);
 	if (cur_mode == NULL) { return; }
@@ -200,6 +217,7 @@ void WindowQuartzSubdriver::GetDeviceInfo()
 	this->device_height = CGDisplayModeGetHeight(cur_mode);
 
 	CGDisplayModeRelease(cur_mode);
+#	endif
 }
 
 /** Switch to full screen mode on OSX 10.7
@@ -247,11 +265,18 @@ bool WindowQuartzSubdriver::SetVideoMode(int width, int height, int bpp)
 			return false;
 		}
 
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_5
 		/* Add built in full-screen support when available (OS X 10.7 and higher)
 		 * This code actually compiles for 10.5 and later, but only makes sense in conjunction
 		 * with the quartz fullscreen support as found only in 10.7 and later
 		 */
 		if ([this->window respondsToSelector:@selector(toggleFullScreen:)]) {
+#if MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_7
+			/* Constants needed to build on pre-10.7 SDKs. Source: NSWindow documentation. */
+			const int NSWindowCollectionBehaviorFullScreenPrimary = 1 << 7;
+			const int NSWindowFullScreenButton = 7;
+#endif
+
 			NSWindowCollectionBehavior behavior = [ this->window collectionBehavior ];
 			behavior |= NSWindowCollectionBehaviorFullScreenPrimary;
 			[ this->window setCollectionBehavior:behavior ];
@@ -262,6 +287,7 @@ bool WindowQuartzSubdriver::SetVideoMode(int width, int height, int bpp)
 
 			[ this->window setCollectionBehavior: NSWindowCollectionBehaviorFullScreenPrimary ];
 		}
+#endif
 
 		[ this->window setDriver:this ];
 
@@ -276,6 +302,10 @@ bool WindowQuartzSubdriver::SetVideoMode(int width, int height, int bpp)
 
 		[ this->window setAcceptsMouseMovedEvents:YES ];
 		[ this->window setViewsNeedDisplay:NO ];
+
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_10
+		if ([ this->window respondsToSelector:@selector(useOptimizedDrawing:) ]) [ this->window useOptimizedDrawing:YES ];
+#endif
 
 		delegate = [ [ OTTD_CocoaWindowDelegate alloc ] init ];
 		[ delegate setDriver:this ];
@@ -318,6 +348,8 @@ bool WindowQuartzSubdriver::SetVideoMode(int width, int height, int bpp)
 
 	[this->window setColorSpace:[NSColorSpace sRGBColorSpace]];
 	this->color_space = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+	if (this->color_space == nullptr) this->color_space = CGColorSpaceCreateDeviceRGB();
+	if (this->color_space == nullptr) error("Could not get a valid colour space for drawing.");
 
 	bool ret = WindowResized();
 	this->UpdatePalette(0, 256);
@@ -464,8 +496,17 @@ CGPoint WindowQuartzSubdriver::PrivateLocalToCG(NSPoint *p)
 
 	p->y = this->window_height - p->y;
 	*p = [ this->cocoaview convertPoint:*p toView:nil ];
-	*p = [ this->window convertRectToScreen:NSMakeRect(p->x, p->y, 0, 0) ].origin;
 
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7
+	if ([ this->window respondsToSelector:@selector(convertRectToScreen:) ]) {
+		*p = [ this->window convertRectToScreen:NSMakeRect(p->x, p->y, 0, 0) ].origin;
+	} else
+#endif
+	{
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_7
+		*p = [ this->window convertBaseToScreen:*p ];
+#endif
+	}
 	p->y = this->device_height - p->y;
 
 	CGPoint cgp;
@@ -480,7 +521,17 @@ NSPoint WindowQuartzSubdriver::GetMouseLocation(NSEvent *event)
 	NSPoint pt;
 
 	if ( [ event window ] == nil) {
-		pt = [ this->cocoaview convertPoint:[ [ this->cocoaview window ] convertRectFromScreen:NSMakeRect([ event locationInWindow ].x, [ event locationInWindow ].y, 0, 0) ].origin fromView:nil ];
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_7
+		if ([ [ this->cocoaview window ] respondsToSelector:@selector(convertRectFromScreen:) ]) {
+			pt = [ this->cocoaview convertPoint:[ [ this->cocoaview window ] convertRectFromScreen:NSMakeRect([ event locationInWindow ].x, [ event locationInWindow ].y, 0, 0) ].origin fromView:nil ];
+		}
+		else
+#endif
+		{
+#if MAC_OS_X_VERSION_MIN_REQUIRED < MAC_OS_X_VERSION_10_7
+			pt = [ this->cocoaview convertPoint:[ [ this->cocoaview window ] convertScreenToBase:[ event locationInWindow ] ] fromView:nil ];
+#endif
+		}
 	} else {
 		pt = [ event locationInWindow ];
 	}
@@ -560,8 +611,8 @@ bool WindowQuartzSubdriver::WindowResized()
 
 CocoaSubdriver *QZ_CreateWindowQuartzSubdriver(int width, int height, int bpp)
 {
-	if (!MacOSVersionIsAtLeast(10, 7, 0)) {
-		DEBUG(driver, 0, "The cocoa quartz subdriver requires Mac OS X 10.7 or later.");
+	if (!MacOSVersionIsAtLeast(10, 4, 0)) {
+		DEBUG(driver, 0, "The cocoa quartz subdriver requires Mac OS X 10.4 or later.");
 		return NULL;
 	}
 
@@ -581,5 +632,6 @@ CocoaSubdriver *QZ_CreateWindowQuartzSubdriver(int width, int height, int bpp)
 }
 
 
+#endif /* MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_4 */
 #endif /* ENABLE_COCOA_QUARTZ */
 #endif /* WITH_COCOA */

@@ -1147,6 +1147,7 @@ struct BuildRoadStationWindow : public PickerWindowBase {
 				this->LowerWidget(_settings_client.gui.station_show_coverage + WID_BROS_LT_OFF);
 				if (_settings_client.sound.click_beep) SndPlayFx(SND_15_BEEP);
 				this->SetDirty();
+				SetViewportCatchmentStation(nullptr, true);
 				break;
 
 			default:
@@ -1359,7 +1360,7 @@ DropDownList GetScenRoadTypeDropDownList(RoadTramTypes rtts)
 		DropDownListIconItem *item = new DropDownListIconItem(rti->gui_sprites.build_x_road, PAL_NONE, str, rt, !HasBit(avail_roadtypes, rt));
 		item->SetDimension(d);
 		item->SetParam(0, rti->strings.menu_text);
-		item->SetParam(1, rti->max_speed);
+		item->SetParam(1, rti->max_speed / 2);
 		list.emplace_back(item);
 	}
 

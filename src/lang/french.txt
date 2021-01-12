@@ -2737,7 +2737,7 @@ STR_LAI_OBJECT_DESCRIPTION_COMPANY_OWNED_LAND                   :Terrain apparte
 STR_ABOUT_OPENTTD                                               :{WHITE}À propos de OpenTTD
 STR_ABOUT_ORIGINAL_COPYRIGHT                                    :{BLACK}Copyright original {COPYRIGHT} 1995 Chris Sawyer, Tous droits réservés
 STR_ABOUT_VERSION                                               :{BLACK}OpenTTD version {REV}
-STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} 2002-2019 L'équipe OpenTTD
+STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} 2002-{STRING} L'équipe OpenTTD
 
 # Framerate display window
 STR_FRAMERATE_CAPTION                                           :{WHITE}Fréquence d'images
@@ -4486,7 +4486,6 @@ STR_ERROR_CAN_T_CONVERT_ROAD                                    :{WHITE}Impossib
 STR_ERROR_CAN_T_CONVERT_TRAMWAY                                 :{WHITE}Impossible de convertir le type de voie de tramway...
 STR_ERROR_NO_SUITABLE_ROAD                                      :{WHITE}Aucune route convenable
 STR_ERROR_NO_SUITABLE_TRAMWAY                                   :{WHITE}Aucune voie de tramway convenable
-STR_ERROR_INCOMPATIBLE_ROAD                                     :{WHITE}... route incompatible
 STR_ERROR_INCOMPATIBLE_TRAMWAY                                  :{WHITE}... voie de tramway incompatible
 
 # Waterway construction errors

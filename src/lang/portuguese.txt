@@ -2723,7 +2723,7 @@ STR_LAI_OBJECT_DESCRIPTION_COMPANY_OWNED_LAND                   :Terreno proprie
 STR_ABOUT_OPENTTD                                               :{WHITE}Sobre o OpenTTD
 STR_ABOUT_ORIGINAL_COPYRIGHT                                    :{BLACK}Direitos de autor originais {COPYRIGHT} 1995 Chris Sawyer, Todos os direitos reservados
 STR_ABOUT_VERSION                                               :{BLACK}OpenTTD versão {REV}
-STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} 2002-2019 A equipa do OpenTTD
+STR_ABOUT_COPYRIGHT_OPENTTD                                     :{BLACK}OpenTTD {COPYRIGHT} 2002-{STRING} A equipa do OpenTTD
 
 # Framerate display window
 STR_FRAMERATE_CAPTION                                           :{WHITE}Taxa de fotograma
@@ -4449,7 +4449,6 @@ STR_ERROR_THERE_IS_NO_ROAD                                      :{WHITE}... não
 STR_ERROR_THERE_IS_NO_TRAMWAY                                   :{WHITE}... não há carris para eléctricos
 STR_ERROR_CAN_T_CONVERT_ROAD                                    :{WHITE}Não é possível converter aqui o tipo de estrada...
 STR_ERROR_CAN_T_CONVERT_TRAMWAY                                 :{WHITE}Não é possível converter aqui o tipo de carril para eléctricos...
-STR_ERROR_INCOMPATIBLE_ROAD                                     :{WHITE}... estrada não-compatível
 STR_ERROR_INCOMPATIBLE_TRAMWAY                                  :Cisterna de bebida de cola
 
 # Waterway construction errors

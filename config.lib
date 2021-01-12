@@ -54,11 +54,12 @@ set_default() {
 	enable_translator="0"
 	enable_unicode="1"
 	enable_console="1";
-	enable_assert="1"
-	enable_strip="0"
+	enable_assert="0"
+	enable_strip="1"
 	enable_universal="0"
 	enable_osx_g5="0"
 	enable_cocoa_quartz="1"
+	enable_cocoa_quickdraw="1"
 	with_osx_sysroot="1"
 	with_application_bundle="1"
 	with_menu_entry="1"
@@ -135,6 +136,7 @@ set_default() {
 		enable_universal
 		enable_osx_g5
 		enable_cocoa_quartz
+		enable_cocoa_quickdraw
 		with_osx_sysroot
 		with_application_bundle
 		with_allegro
@@ -311,6 +313,9 @@ detect_params() {
 			--disable-cocoa-quartz)       enable_cocoa_quartz="0";;
 			--enable-cocoa-quartz)        enable_cocoa_quartz="2";;
 			--enable-cocoa-quartz=*)      enable_cocoa_quartz="$optarg";;
+			--disable-cocoa-quickdraw)    enable_cocoa_quickdraw="0";;
+			--enable-cocoa-quickdraw)     enable_cocoa_quickdraw="2";;
+			--enable-cocoa-quickdraw=*)   enable_cocoa_quickdraw="$optarg";;
 
 			--with-allegro)               with_allegro="2";;
 			--without-allegro)            with_allegro="0";;
@@ -1592,6 +1597,12 @@ make_cflags_and_ldflags() {
 		# Add macports include dir which is not always set a default system dir. This avoids zillions of bogus warnings.
 		CFLAGS="$CFLAGS -isystem/opt/local/include"
 
+		if [ "$enable_dedicated" = "0" ] && ([ "$cpu_type" = "32" ] || [ "$enable_universal" != "0" ]); then
+			LIBS="$LIBS -framework QuickTime"
+		else
+			CFLAGS="$CFLAGS -DNO_QUICKTIME"
+		fi
+
 		if [ "$enable_universal" = "0" ]; then
 			# Universal builds set this elsewhere
 			CFLAGS="$OSX_SYSROOT $CFLAGS"
@@ -1646,10 +1657,14 @@ make_cflags_and_ldflags() {
 
 	if [ "$with_cocoa" != "0" ]; then
 		CFLAGS="$CFLAGS -DWITH_COCOA"
-		LIBS="$LIBS -F$osx_sdk_path/System/Library/Frameworks -framework Cocoa -framework AudioUnit -framework AudioToolbox"
+		LIBS="$LIBS -F/System/Library/Frameworks -framework Cocoa -framework Carbon -framework AudioUnit -framework AudioToolbox"
 
 		if [ "$enable_cocoa_quartz" != "0" ]; then
 			CFLAGS="$CFLAGS -DENABLE_COCOA_QUARTZ"
+		fi
+
+		if [ "$enable_cocoa_quickdraw" != "0" ]; then
+			CFLAGS="$CFLAGS -DENABLE_COCOA_QUICKDRAW"
 		fi
 	fi
 
@@ -2434,7 +2449,7 @@ detect_sdl() {
 		detect_pkg_config "2" "sdl2" "sdl2_config" "2.0"
 	else
 		sdl2_config=""
-		if [ -x `which sdl2-config` ]; then
+		if [ -x "`which sdl2-config`" ]; then
 			detect_pkg_config "$with_sdl" "sdl2" "sdl2_config" "2.0"
 		fi
 		if [ -z "$sdl2_config" ]; then
@@ -2520,6 +2535,56 @@ detect_cocoa() {
 	else
 		log 1 "checking whether to enable the Quartz window subdriver... no"
 	fi
+
+	detect_quickdraw
+}
+
+detect_quickdraw() {
+	# 0 means no, 1 is auto-detect, 2 is force
+	if [ "$enable_cocoa_quickdraw" = "0" ]; then
+		log 1 "checking Quickdraw window subdriver... disabled"
+		return 0
+	fi
+
+	# Assume QuickDraw is available when doing an universal build
+	if [ "$enable_universal" != "0" ]; then
+		log 1 "checking Quickdraw window subdriver... found"
+		return 0
+	fi
+
+	# 64 bits doesn't have quickdraw
+	if [ "$cpu_type" = "64" ]; then
+		enable_cocoa_quickdraw="0"
+		log 1 "checking Quickdraw window subdriver... disabled (64 bits)"
+		return 0
+	fi
+
+cat > tmp.osx.mm << EOF
+#include <AvailabilityMacros.h>
+#import <Cocoa/Cocoa.h>
+int main(int argc, char *argv[]) { SetEmptyRgn(NULL); return 0; }
+EOF
+	execute="$cxx_host $OSX_SYSROOT $OSX_LD_SYSROOT $CFLAGS -mmacosx-version-min=10.3 tmp.osx.mm -framework Cocoa -o tmp.osx 2>&1"
+	eval $execute > /dev/null
+	ret=$?
+	log 2 "executing $execute"
+	log 2 "  exit code $ret"
+	rm -f tmp.osx.mm tmp.osx
+	if [ "$ret" != "0" ]; then
+		log 1 "checking Quickdraw window subdriver... not found"
+
+		# It was forced, so it should be found.
+		if [ "$enable_cocoa_quickdraw" != "1" ]; then
+			log 1 "configure: error: Quickdraw window driver could not be found"
+			exit 1
+		fi
+
+		enable_cocoa_quickdraw=0
+		return 0
+	fi
+
+	enable_cocoa_quickdraw=1
+	log 1 "checking Quickdraw window subdriver... found"
 }
 
 detect_library() {
@@ -3320,7 +3385,8 @@ generate_src_osx() {
 				CFLAGS="-isysroot $osx_sdk_path $CFLAGS_orig"
 				LDFLAGS="-Wl,-syslibroot,$osx_sdk_path $LDFLAGS_orig"
 			fi
-			CFLAGS="$CFLAGS -D_SQ64"
+			CFLAGS="$CFLAGS -D_SQ64 -DNO_QUICKTIME -UENABLE_COCOA_QUICKDRAW"
+			LIBS="`echo $LIBS | sed 's/-framework QuickTime//'`"
 		fi
 
 		case $type in
@@ -3435,6 +3501,7 @@ showhelp() {
 	echo "                                 Default architectures are: i386 ppc"
 	echo "  --enable-osx-g5                enables optimizations for ppc970 (G5) (OSX ONLY)"
 	echo "  --disable-cocoa-quartz         disable the quartz window mode driver for Cocoa (OSX ONLY)"
+	echo "  --disable-cocoa-quickdraw      disable the quickdraw window mode driver for Cocoa (OSX ONLY)"
 	echo "  --disable-unicode              disable unicode support to build win9x"
 	echo "                                 version (Win32 ONLY)"
 	echo "  --enable-console               compile as a console application instead of as a GUI application."
