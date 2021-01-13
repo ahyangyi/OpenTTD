@@ -1720,6 +1720,13 @@ static void AircraftEventHandler_InHangar(Aircraft *v, const AirportFTAClass *ap
 	} else { // Else prepare for launch.
 		/* airplane goto state takeoff, helicopter to helitakeoff */
 		v->state = (v->subtype == AIR_HELICOPTER) ? HELITAKEOFF : TAKEOFF;
+		//Need to recheck path because state changed.
+		if (AirportHasBlock(v, &apc->layout[v->pos], apc)) {
+			// Failed to secure path, restore state and abort.
+			v->state = storestate; // Reset state back to be in the Hangar
+			return;
+		}
+
 		AircraftExitHangar(v, apc);
 		return;
 	}
