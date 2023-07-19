@@ -1,4 +1,5 @@
 # Source Files
+terminal_gui.cpp
 airport.cpp
 animated_tile.cpp
 articulated_vehicles.cpp
